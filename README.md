@@ -133,4 +133,3 @@ points at, and the platform generates a policy ID like
 `custom-policy-123` on create.
 
 Scripts assume a working `lacework` CLI, `jq`, and `python3` on your `$PATH`.
-They don't hold your hand with argument validation beyond what's useful.
