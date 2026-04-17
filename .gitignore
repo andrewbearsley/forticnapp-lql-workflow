@@ -1,0 +1,8 @@
+# Output from clone-policy.sh. Reviewed by hand, not worth committing.
+cloned/
+
+# Local credentials, just in case.
+.lacework.toml
+lacework.toml
+*.credentials.json
+api-key/

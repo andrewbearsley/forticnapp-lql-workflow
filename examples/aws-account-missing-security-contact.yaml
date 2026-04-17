@@ -1,0 +1,51 @@
+# Account-level NOT IN subquery pattern.
+# Flags AWS accounts that have no SECURITY alternate contact set.
+title: "AWS accounts must have a security alternate contact"
+description: "Flags accounts missing a SECURITY alternate contact with a name set."
+severity: medium
+enabled: false
+policyType: Compliance
+queryId: Example_Account_Security_Contact_v1
+queryText: |-
+  {
+    source {
+      LW_CFG_AWS_ACCOUNTS account
+    }
+    filter {
+      not (account.ACCOUNT_ID in {
+        source {
+          LW_CFG_AWS_ACCOUNT_GET_ALTERNATE_CONTACT
+        }
+        filter {
+          RESOURCE_CONFIG:AlternateContact.AlternateContactType = 'SECURITY'
+          AND RESOURCE_CONFIG:AlternateContact.Name is not null
+          AND RESOURCE_CONFIG:AlternateContact.Name <> ''
+        }
+        return distinct { ACCOUNT_ID }
+      })
+    }
+    return distinct {
+      account.ACCOUNT_ALIAS,
+      account.ACCOUNT_ID,
+      account.ACCOUNT_ID as RESOURCE_KEY,
+      account.RESOURCE_REGION,
+      account.RESOURCE_TYPE,
+      account.SERVICE,
+      'SecurityContactMissingOrIncomplete' as COMPLIANCE_FAILURE_REASON
+    }
+  }
+remediation: |-
+  Set a SECURITY alternate contact on the account. Via CLI:
+    aws account put-alternate-contact \
+      --alternate-contact-type SECURITY \
+      --email-address security@example.com \
+      --name "Security Team" \
+      --phone-number "+1-555-0100" \
+      --title "Security Contact"
+tags:
+  - "domain:AWS"
+  - "service:Account"
+  - "example:lql-workflow"
+alertEnabled: true
+alertProfile: LW_CloudConfig_AlertProfile.CfgAws
+evalFrequency: Daily

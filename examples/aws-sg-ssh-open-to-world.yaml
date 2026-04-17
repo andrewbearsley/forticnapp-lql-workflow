@@ -1,0 +1,47 @@
+# Array iteration pattern. Walks IpPermissions and IpRanges.
+# Flags security groups with 0.0.0.0/0 ingress on port 22.
+title: "Security groups must not expose SSH to the internet"
+description: "Flags security groups with 0.0.0.0/0 ingress covering port 22."
+severity: critical
+enabled: false
+policyType: Violation
+queryId: Example_SG_SSH_Open_v1
+queryText: |-
+  {
+    source {
+      LW_CFG_AWS_EC2_SECURITY_GROUPS sg
+    }
+    filter {
+      value_exists(
+        array_to_rows(sg.RESOURCE_CONFIG:IpPermissions),
+        ip,
+        value_exists(
+          array_to_rows(ip:IpRanges),
+          range,
+          range:CidrIp = '0.0.0.0/0'
+        )
+        AND ip:FromPort <= 22
+        AND ip:ToPort   >= 22
+      )
+    }
+    return distinct {
+      sg.ACCOUNT_ID,
+      sg.RESOURCE_ID as RESOURCE_KEY,
+      sg.RESOURCE_REGION,
+      sg.RESOURCE_TYPE,
+      sg.SERVICE,
+      'SSHOpenToWorld' as COMPLIANCE_FAILURE_REASON
+    }
+  }
+remediation: |-
+  Remove the offending rule from the security group, or scope CidrIp to
+  your management network:
+    aws ec2 revoke-security-group-ingress \
+      --group-id <sg-id> --protocol tcp --port 22 --cidr 0.0.0.0/0
+tags:
+  - "domain:AWS"
+  - "service:EC2"
+  - "example:lql-workflow"
+alertEnabled: true
+alertProfile: LW_CloudConfig_AlertProfile.CfgAws
+evalFrequency: Hourly

@@ -1,0 +1,37 @@
+# Resource-level filter. Simplest pattern.
+# Flags EC2 instances that allow IMDSv1 (HttpTokens != 'required').
+title: "EC2 instances must require IMDSv2"
+description: "Flags EC2 instances that do not enforce IMDSv2."
+severity: high
+enabled: false
+policyType: Violation
+queryId: Example_IMDSv2_Required_v1
+queryText: |-
+  {
+    source {
+      LW_CFG_AWS_EC2_INSTANCES instance
+    }
+    filter {
+      instance.RESOURCE_CONFIG:MetadataOptions.HttpTokens <> 'required'
+    }
+    return distinct {
+      instance.ACCOUNT_ID,
+      instance.RESOURCE_ID as RESOURCE_KEY,
+      instance.RESOURCE_REGION,
+      instance.RESOURCE_TYPE,
+      instance.SERVICE,
+      'IMDSv2NotEnforced' as COMPLIANCE_FAILURE_REASON
+    }
+  }
+remediation: |-
+  aws ec2 modify-instance-metadata-options \
+    --instance-id <id> \
+    --http-tokens required \
+    --http-endpoint enabled
+tags:
+  - "domain:AWS"
+  - "service:EC2"
+  - "example:lql-workflow"
+alertEnabled: true
+alertProfile: LW_CloudConfig_AlertProfile.CfgAws
+evalFrequency: Hourly
